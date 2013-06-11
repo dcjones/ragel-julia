@@ -133,7 +133,7 @@ struct HostLang
 	/* Target language. */
 	enum Lang
 	{
-		C, D, D2, Go, Java, Ruby, CSharp, OCaml, Crack
+		C, D, D2, Go, Java, Ruby, CSharp, OCaml, Crack, Julia
 	};
 
 	Lang lang;
@@ -154,6 +154,7 @@ extern HostLang hostLangRuby;
 extern HostLang hostLangCSharp;
 extern HostLang hostLangOCaml;
 extern HostLang hostLangCrack;
+extern HostLang hostLangJulia;
 
 HostType *findAlphType( const char *s1 );
 HostType *findAlphType( const char *s1, const char *s2 );

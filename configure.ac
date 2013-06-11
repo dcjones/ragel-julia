@@ -171,8 +171,9 @@ AC_OUTPUT(
 		src/ml/Makefile
 		src/rbx/Makefile
 		src/ruby/Makefile
+        src/julia/Makefile
 		src/xml/Makefile
-		aapl/Makefile 
+		aapl/Makefile
 		doc/Makefile doc/ragel.1
 		contrib/Makefile
 		test/Makefile test/runtests

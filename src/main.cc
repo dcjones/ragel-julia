@@ -129,9 +129,10 @@ void usage()
 "   -A                   The host language is C#\n"
 "   -O                   The host language is OCaml\n"
 "   -K                   The host language is Crack\n"
+"   -U                   The host language is Julia\n"
 "line directives: (C/D/Ruby/C#/OCaml)\n"
 "   -L                   Inhibit writing of #line directives\n"
-"code style: (C/D/Java/Ruby/C#/OCaml)\n"
+"code style: (C/D/Java/Ruby/C#/OCaml/Julia)\n"
 "   -T0                  Table driven FSM (default)\n"
 "code style: (C/D/Ruby/C#/OCaml)\n"
 "   -T1                  Faster table driven FSM\n"
@@ -222,7 +223,7 @@ void escapeLineDirectivePath( std::ostream &out, char *path )
 
 void InputData::parseArgs( int argc, const char **argv )
 {
-	ParamCheck pc("xo:dnmleabjkS:M:I:CDEJZRAOKvHh?-:sT:F:G:P:LpV", argc, argv);
+	ParamCheck pc("xo:dnmleabjkS:M:I:CDEJZRAOKUvHh?-:sT:F:G:P:LpV", argc, argv);
 
 	/* FIXME: Need to check code styles VS langauge. */
 
@@ -341,6 +342,9 @@ void InputData::parseArgs( int argc, const char **argv )
 			case 'K':
 				hostLang = &hostLangCrack;
 				break;
+            case 'U':
+                hostLang = &hostLangJulia;
+                break;
 
 			/* Version and help. */
 			case 'v':

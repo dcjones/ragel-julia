@@ -87,6 +87,8 @@
 
 //#include "crack/crack.h"
 
+#include "julia/binloop.h"
+
 using std::cerr;
 using std::endl;
 
@@ -361,6 +363,23 @@ CodeGenData *goMakeCodeGen( const CodeGenArgs &args )
 //	return codeGen;
 //}
 
+CodeGenData *juliaMakeCodeGen( const CodeGenArgs &args )
+{
+    CodeGenData *codeGen = 0;
+
+    switch ( codeStyle ) {
+    case GenTables:
+        codeGen = new Julia::BinaryLooped(args);
+        break;
+    default:
+		cerr << "Invalid output style, only -T0 and -T1 is supported with Julia.\n";
+        exit(1);
+    }
+
+    return codeGen;
+}
+
+
 CodeGenData *makeCodeGen( const CodeGenArgs &args )
 {
 	CodeGenData *cgd = 0;
@@ -382,5 +401,7 @@ CodeGenData *makeCodeGen( const CodeGenArgs &args )
 //		cgd = ocamlMakeCodeGen( args );
 //	else if ( hostLang == &hostLangCrack )
 //		cgd = crackMakeCodeGen( args );
+    else if ( hostLang == &hostLangJulia)
+        cgd = juliaMakeCodeGen( args );
 	return cgd;
 }

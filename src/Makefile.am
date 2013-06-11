@@ -1,4 +1,4 @@
-SUBDIRS = c dot xml go
+SUBDIRS = c dot xml go julia
 
 # d crack cs java ml rbx ruby
 
@@ -20,7 +20,8 @@ ragel_LDADD = \
 	c/libc.a \
 	dot/libdot.a \
 	xml/libxml.a \
-	go/libgo.a
+	go/libgo.a \
+	julia/libjulia.a
 
 #	crack/libcrack.a
 #	cs/libcs.a
