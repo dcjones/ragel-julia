@@ -267,6 +267,73 @@ void BinaryLooped::writeData()
 	}
 
 	STATE_IDS();
+
+    // binary search functions
+    out <<
+        "function " << FSM_NAME() << "_matchsingle(_keys::Int, _klen::Int, _trans::Int, p::Int, data)\n"
+        "    _lower = _keys\n" // ALPH_TYPE array index
+        "    _mid = 0\n" // ALPH_TYPE array index
+        "    _upper = _keys + _klen - 1\n" // ALPH_TYPE array index
+        "    while true\n"
+        "        if _upper < _lower\n"
+        "            break\n"
+        "        end\n"
+        "\n"
+        "        _mid = _lower + ((_upper - _lower) >> 1)\n"
+        "        if " << GET_KEY() << " < " << ARR_REF( keys ) << "[_mid]\n"
+        "            _upper = _mid - 1\n"
+        "        elseif " << GET_KEY() << " > " << ARR_REF( keys ) << "[_mid]\n"
+        "            _lower = _mid + 1\n"
+        "        else\n"
+        "            return true, _trans + (_mid - _keys)\n"
+        "        end\n"
+        "    end\n"
+        "    return false, _trans\n"
+        "end\n\n";
+
+    out <<
+        "function " << FSM_NAME() << "_matchrange(_keys::Int, _klen::Int, _trans::Int, p::Int, data)\n"
+        "    _lower = _keys\n" // ALPH_TYPE array index
+        "    _mid = 0\n" // ALPH_TYPE array index
+        "    _upper = _keys + (_klen << 1) - 2\n" // ALPH_TYPE array index
+        "    while true\n"
+        "        if _upper < _lower\n"
+        "            break\n"
+        "        end\n"
+        "\n"
+        "        _mid = _lower + (((_upper - _lower) >> 1) & ~1)\n"
+        "        if " << GET_KEY() << " < " << ARR_REF( keys ) << "[_mid]\n"
+        "            _upper = _mid - 2\n"
+        "        elseif " << GET_KEY() << " > " << ARR_REF( keys ) << "[_mid + 1]\n"
+        "            _lower = _mid + 2\n"
+        "        else\n"
+        "            return true, _trans + ((_mid - _keys) >> 1)\n"
+        "        end\n"
+        "    end\n"
+        "    return false, _trans\n"
+        "end\n\n";
+
+    out <<
+        "function " << FSM_NAME() << "_matchcond(_ckeys::Int, _klen::Int, _cpc::Int, _cond::Int)\n"
+        "    _lower = _ckeys;\n" // condKeys array index
+        "    _mid = 0\n" // condKeys array index
+        "    _upper = _ckeys + _klen - 1\n" // condKeys array index
+        "    while true\n"
+        "        if _upper < _lower\n"
+        "            break\n"
+        "        end\n"
+        "\n"
+        "        _mid = _lower + ((_upper - _lower) >> 1)\n"
+        "        if " << "_cpc" << " < " << ARR_REF( condKeys ) << "[_mid]\n"
+        "            _upper = _mid - 1\n"
+        "        elseif " << "_cpc" << " > " << ARR_REF( condKeys ) << "[_mid]\n"
+        "            _lower = _mid + 1\n"
+        "        else\n"
+        "            return true, _cond + (_mid - _ckeys)\n"
+        "        end\n"
+        "    end\n"
+        "    return false, _cond\n"
+        "end\n\n";
 }
 
 void BinaryLooped::writeExec()

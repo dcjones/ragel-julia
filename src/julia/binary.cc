@@ -596,31 +596,13 @@ void Binary::taActions()
 void Binary::LOCATE_TRANS()
 {
     out <<
-        "    _keys = " << ARR_REF( keyOffsets ) << "[" << vCS() << " + 1]" << "\n" // keys array index
-        "    _trans = " << ARR_REF( indexOffsets ) << "[" << vCS() << " + 1]\n"
-        "    _klen = " << ARR_REF( singleLens ) << "[" << vCS() << " + 1]\n"
+        "    _keys = int(" << ARR_REF( keyOffsets ) << "[" << vCS() << " + 1])\n" // keys array index
+        "    _trans = int(" << ARR_REF( indexOffsets ) << "[" << vCS() << " + 1])\n"
+        "    _klen = int(" << ARR_REF( singleLens ) << "[" << vCS() << " + 1])\n"
         "    _break_match = false\n"
         "    while true\n"
         "        if _klen > 0\n"
-        "            _lower = _keys\n" // ALPH_TYPE array index
-        "            _mid = 0\n" // ALPH_TYPE array index
-        "            _upper = _keys + _klen - 1\n" // ALPH_TYPE array index
-        "            while true\n"
-        "                if _upper < _lower\n"
-        "                    break\n"
-        "                end\n"
-        "\n"
-        "                _mid = _lower + ((_upper - _lower) >> 1)\n"
-        "                if " << GET_KEY() << " < " << ARR_REF( keys ) << "[_mid]\n"
-        "                    _upper = _mid - 1\n"
-        "                elseif " << GET_KEY() << " > " << ARR_REF( keys ) << "[_mid]\n"
-        "                    _lower = _mid + 1\n"
-        "                else\n"
-        "                    _trans = uint(int(_trans) + (_mid - int(_keys)))\n"
-        "                    _break_match = true\n"
-        "                    break\n"
-        "                end\n"
-        "            end\n"
+        "            _break_match, _trans = " << FSM_NAME() << "_matchsingle(_keys, _klen, _trans, p, data)\n"
         "            if _break_match\n"
         "                break\n"
         "            end\n"
@@ -628,31 +610,13 @@ void Binary::LOCATE_TRANS()
         "            _trans += _klen\n"
         "        end\n"
         "\n"
-        "        _klen = " << ARR_REF( rangeLens ) << "[" << vCS() << " + 1]\n"
+        "        _klen = int(" << ARR_REF( rangeLens ) << "[" << vCS() << " + 1])\n"
         "        if _klen > 0\n"
-        "            _lower = _keys\n" // ALPH_TYPE array index
-        "            _mid = 0\n" // ALPH_TYPE array index
-        "            _upper = int(_keys) + (_klen << 1) - 2\n" // ALPH_TYPE array index
-        "            while true\n"
-        "                if _upper < _lower\n"
-        "                    break\n"
-        "                end\n"
-        "\n"
-        "                _mid = _lower + (((_upper - _lower) >> 1) & ~1)\n"
-        "                if " << GET_KEY() << " < " << ARR_REF( keys ) << "[_mid]\n"
-        "                    _upper = _mid - 2\n"
-        "                elseif " << GET_KEY() << " > " << ARR_REF( keys ) << "[_mid + 1]\n"
-        "                    _lower = _mid + 2\n"
-        "                else\n"
-        "                    _trans = " << "uint(int(_trans) + ((_mid - int(_keys)) >> 1))\n"
-        "                    _break_match = true\n"
-        "                    break\n"
-        "                end\n"
-        "            end\n"
+        "            _break_match, _trans = " << FSM_NAME() << "_matchrange(_keys, _klen, _trans, p, data)\n"
         "            if _break_match\n"
         "                break\n"
         "            end\n"
-        "            _trans = uint(int(_trans) + _klen)\n"
+        "            _trans = _trans + _klen\n"
         "        end\n"
         "        break\n"
         "    end # while true\n"
@@ -662,9 +626,9 @@ void Binary::LOCATE_TRANS()
 void Binary::LOCATE_COND()
 {
     out <<
-        "    _ckeys = " << ARR_REF( transOffsets ) << "[_trans]" << "\n" // condKeys array index
-        "    _klen = " << ARR_REF( transLengths ) << "[_trans]" << "\n"
-        "    _cond = " << ARR_REF( transOffsets ) << "[_trans]" << "\n"
+        "    _ckeys = int(" << ARR_REF( transOffsets ) << "[_trans]" << ")\n" // condKeys array index
+        "    _klen = int(" << ARR_REF( transLengths ) << "[_trans]" << ")\n"
+        "    _cond = int(" << ARR_REF( transOffsets ) << "[_trans]" << ")\n"
         "    _break_match = false\n"
         "\n";
 
@@ -685,31 +649,11 @@ void Binary::LOCATE_COND()
     if (i > 0) out << "    end\n";
 
     out <<
-        "    begin\n"
-        "        _lower = int(_ckeys);\n" // condKeys array index
-        "        _mid = 0\n" // condKeys array index
-        "        _upper = _ckeys + _klen - 1\n" // condKeys array index
-        "        while true\n"
-        "            if _upper < _lower\n"
-        "                break\n"
-        "            end\n"
-        "\n"
-        "            _mid = _lower + ((_upper - _lower) >> 1)\n"
-        "            if " << "_cpc" << " < " << ARR_REF( condKeys ) << "[_mid]\n"
-        "                _upper = _mid - 1\n"
-        "            elseif " << "_cpc" << " > " << ARR_REF( condKeys ) << "[_mid]\n"
-        "                _lower = _mid + 1\n"
-        "            else\n"
-        "                _cond = " << "_cond + (_mid - _ckeys)\n"
-        "                _break_match = true\n"
-        "                break\n"
-        "            end\n"
-        "        end\n"
-        "        if !_break_match\n"
-        "            " << vCS() << " = " << ERROR_STATE() << "\n"
-        "            _goto_level = _again\n"
-        "            _trigger_goto = true\n"
-        "        end\n"
+        "    _break_match, _cond = " << FSM_NAME() << "_matchcond(_ckeys, _klen, _cpc, _cond)\n"
+        "    if !_break_match\n"
+        "        " << vCS() << " = " << ERROR_STATE() << "\n"
+        "        _goto_level = _again\n"
+        "        _trigger_goto = true\n"
         "    end\n";
 }
 
