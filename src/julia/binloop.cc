@@ -413,7 +413,7 @@ void BinaryLooped::writeExec()
         out << "    _ps = " << vCS() << "\n";
     }
 
-    out << "    " << vCS() << " = " << ARR_REF( condTargs ) << "[_cond]\n";
+    out << "    " << vCS() << " = int(" << ARR_REF( condTargs ) << "[_cond])\n";
 
     if ( redFsm->anyRegActions() ) {
         out <<
