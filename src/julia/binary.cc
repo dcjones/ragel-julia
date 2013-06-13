@@ -596,9 +596,9 @@ void Binary::taActions()
 void Binary::LOCATE_TRANS()
 {
     out <<
-        "    _keys = " << ARR_REF( keyOffsets ) << "[" << vCS() << "]" << "\n" // keys array index
-        "    _trans = " << ARR_REF( indexOffsets ) << "[" << vCS() << "]\n"
-        "    _klen = " << ARR_REF( singleLens ) << "[" << vCS() << "]\n"
+        "    _keys = " << ARR_REF( keyOffsets ) << "[" << vCS() << " + 1]" << "\n" // keys array index
+        "    _trans = " << ARR_REF( indexOffsets ) << "[" << vCS() << " + 1]\n"
+        "    _klen = " << ARR_REF( singleLens ) << "[" << vCS() << " + 1]\n"
         "    _break_match = false\n"
         "    while true\n"
         "        if _klen > 0\n"
@@ -624,11 +624,11 @@ void Binary::LOCATE_TRANS()
         "            if _break_match\n"
         "                break\n"
         "            end\n"
-        "            _key += _klen\n"
+        "            _keys += _klen\n"
         "            _trans += _klen\n"
         "        end\n"
         "\n"
-        "        _klen = " << ARR_REF( rangeLens ) << "[" << vCS() << "]\n"
+        "        _klen = " << ARR_REF( rangeLens ) << "[" << vCS() << " + 1]\n"
         "        if _klen > 0\n"
         "            _lower = _keys\n" // ALPH_TYPE array index
         "            _mid = 0\n" // ALPH_TYPE array index
@@ -638,7 +638,7 @@ void Binary::LOCATE_TRANS()
         "                    break\n"
         "                end\n"
         "\n"
-        "                _mid = _lower + (((_upper - _lower) >> 1) & ~uint(1))\n"
+        "                _mid = _lower + (((_upper - _lower) >> 1) & ~1)\n"
         "                if " << GET_KEY() << " < " << ARR_REF( keys ) << "[_mid]\n"
         "                    _upper = _mid - 2\n"
         "                elseif " << GET_KEY() << " > " << ARR_REF( keys ) << "[_mid + 1]\n"

@@ -667,10 +667,10 @@ void CodeGen::writeInit()
 {
     out << "begin\n";
 
-    out << "\t" << P() << " = 0\n";
+    out << "\t" << P() << " = 1\n";
 
     if ( !noEnd ) {
-        out << "\t" << PE() << " = length(data)\n";
+        out << "\t" << PE() << " = length(data) + 1\n";
     }
 
     if ( !noCS ) {
