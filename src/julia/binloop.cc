@@ -154,14 +154,17 @@ void BinaryLooped::EOF_ACTION( RedStateAp *state )
 std::ostream &BinaryLooped::TO_STATE_ACTION_SWITCH()
 {
 	/* Walk the list of functions, printing the cases. */
+    int i = 0;
 	for ( GenActionList::Iter act = actionList; act.lte(); act++ ) {
 		/* Write out referenced actions. */
 		if ( act->numToStateRefs > 0 ) {
-			/* Write the case label, the action and the case break. */
-			out << "\tcase " << act->actionId << ":\n";
+            out << (i == 0 ? "        if " : "        elseif ");
+            out << ARR_REF( actions ) << "[_acts - 1] == " << act->actionId <<"\n";
 			ACTION( out, act, 0, false, false );
+            ++i;
 		}
 	}
+    if (i > 0) out << "        end\n";
 
 	genLineDirective( out );
 	return out;
@@ -170,12 +173,14 @@ std::ostream &BinaryLooped::TO_STATE_ACTION_SWITCH()
 std::ostream &BinaryLooped::FROM_STATE_ACTION_SWITCH()
 {
 	/* Walk the list of functions, printing the cases. */
+    int i = 0;
 	for ( GenActionList::Iter act = actionList; act.lte(); act++ ) {
 		/* Write out referenced actions. */
 		if ( act->numFromStateRefs > 0 ) {
-			/* Write the case label, the action and the case break. */
-			out << "\tcase " << act->actionId << ":\n";
+            out << (i == 0 ? "        if " : "        elseif ");
+            out << ARR_REF( actions ) << "[_acts - 1] == " << act->actionId <<"\n";
 			ACTION( out, act, 0, false, false );
+            ++i;
 		}
 	}
 
@@ -269,176 +274,195 @@ void BinaryLooped::writeExec()
 	testEofUsed = false;
 	outLabelUsed = false;
 
-	out <<
-		"	{\n"
-		"	var _klen";
+    out << "begin\n";
+    out <<
+        "    _goto_level = 0\n"
+        "    _resume = 10\n"
+        "    _eof_trans = 15\n"
+        "    _again = 20\n"
+        "    _test_eof = 30\n"
+        "    _out = 40\n";
 
-	if ( redFsm->anyRegCurStateRef() )
-		out << ", _ps";
+    out <<
+        "    while true\n"
+        "    _trigger_goto = false\n"
+        "    if _goto_level <= 0\n";
 
-	out <<
-		" int\n"
-		"	var _trans uint\n" <<
-		"	var _cond uint\n";
-
-	if ( redFsm->anyToStateActions() || redFsm->anyRegActions()
-			|| redFsm->anyFromStateActions() )
-	{
-		out <<
-			"	var _acts uint\n" // actions array index
-			"	var _nacts uint\n";
-	}
-
-	out <<
-		"	var _keys uint\n" // ALPH_TYPE array index
-		"	var _ckeys uint\n" // condKeys array index
-		"	var _cpc int\n"
-		"\n";
-
-	if ( !noEnd ) {
+    if ( !noEnd ) {
 		testEofUsed = true;
-		out <<
-			"	if " << P() << " == " << PE() << " {\n"
-			"		goto _test_eof\n"
-			"	}\n";
-	}
+        out <<
+            "    if " << P() << " == " << PE() << "\n"
+            "        _goto_level = _test_eof\n"
+            "        continue\n"
+            "    end\n";
+    }
 
-	if ( redFsm->errState != 0 ) {
+    if ( redFsm->errState != 0 ) {
 		outLabelUsed = true;
-		out <<
-			"	if " << vCS() << " == " << redFsm->errState->id << " {\n"
-			"		goto _out\n"
-			"	}\n";
-	}
+        out <<
+            "    if " << vCS() << " == " << redFsm->errState->id << "\n"
+            "        _goto_level = _test_eof\n"
+            "        continue\n"
+            "    end\n";
+    }
 
-	out << "_resume:\n";
+    // resume label
+    out <<
+        "    end\n"
+        "    if _goto_level <= _resume\n";
 
 	if ( redFsm->anyFromStateActions() ) {
-		out <<
-			"	_acts = " << "uint(" << ARR_REF( fromStateActions ) << "[" << vCS() << "]" << ")\n" // actions array index
-			"	_nacts = " << "uint(" << ARR_REF( actions ) << "[_acts]); _acts++\n"
-			"	for ; _nacts > 0; _nacts-- {\n"
-			"		_acts++\n"
-			"		switch " << ARR_REF( actions ) << "[_acts - 1]" << " {\n";
-			FROM_STATE_ACTION_SWITCH() <<
-			"		}\n"
-			"	}\n"
-			"\n";
-	}
+        out <<
+            "    _acts = " << ARR_REF( fromStateActions ) << "[" << vCS() << "]" << ")\n" // actions array endx
+            "    _nacts = " << ARR_REF( actions ) << "[_acts]\n"
+            "    _acts += 1\n"
+            "    while _nacts > 0\n"
+            "        _acts += 1\n";
+        FROM_STATE_ACTION_SWITCH() <<
+            "        _nacts -= 1\n"
+            "    end\n"
+            "    if _trigger_goto\n"
+            "        continue\n"
+            "    end\n";
+    }
 
+    // match label
 	LOCATE_TRANS();
 
-	out << "_match:\n";
-
-	if ( useIndicies )
-		out << "	_trans = " << ARR_REF( indicies ) << "[_trans];\n";
+    if ( useIndicies ) {
+        out << "    _trans = " << ARR_REF( indicies ) << "[_trans]\n";
+    }
 
 	LOCATE_COND();
 
-	out << "_match_cond:\n";
+    // match_cond label
+    if ( redFsm->anyEofTrans() ) {
+        out <<
+            "    end\n"
+            "    if _goto_level <= _eof_trans\n";
+    }
 
-	if ( redFsm->anyEofTrans() )
-		out << "_eof_trans:\n";
+    if ( redFsm->anyRegCurStateRef() ) {
+        out << "    _ps = " << vCS() << "\n";
+    }
 
-	if ( redFsm->anyRegCurStateRef() )
-		out << "	_ps = " << vCS() << "\n";
+    out << "    " << vCS() << " = " << ARR_REF( condTargs ) << "[_cond]\n";
 
-	out <<
-		"	" << vCS() << " = " << "int(" << ARR_REF( condTargs ) << "[_cond]" << ")\n"
-		"\n";
+    if ( redFsm->anyRegActions() ) {
+        out <<
+            "    if " << ARR_REF( condActions ) << "[_cond] == 0"
+            "        _goto_level = _again\n"
+            "        continue\n"
+            "    end\n"
+            "\n"
+            "    _acts = " << ARR_REF( condActions ) << "[_cond]\n"
+            "    _nacts = " << ARR_REF( actions ) << "[_acts]\n"
+            "    _acts += 1\n"
+            "    while _nacts > 0\n"
+            "        _acts += 1\n"
+            "        _nacts -= 1\n";
+            ACTION_SWITCH() <<
+            "    end\n"
+            "\n";
+    }
 
-	if ( redFsm->anyRegActions() ) {
-		out <<
-			"	if " << ARR_REF( condActions ) << "[_cond] == 0 {\n"
-			"		goto _again\n"
-			"	}\n"
-			"\n"
-			"	_acts = " << "uint(" << ARR_REF( condActions ) << "[_cond]" << ")\n" // actions array index
-			"	_nacts = " << "uint(" << ARR_REF( actions ) << "[_acts]); _acts++\n"
-			"	for ; _nacts > 0; _nacts-- {\n"
-			"		_acts++\n"
-			"		switch " << ARR_REF( actions ) << "[_acts - 1] {\n";
-			ACTION_SWITCH() <<
-			"		}\n"
-			"	}\n"
-			"\n";
-	}
 
-//	if ( redFsm->anyRegActions() || redFsm->anyActionGotos() ||
-//			redFsm->anyActionCalls() || redFsm->anyActionRets() )
-		out << "_again:\n";
+    // again label
+    out <<
+        "    end\n"
+        "    if _goto_level <= _again\n";
 
 	if ( redFsm->anyToStateActions() ) {
-		out <<
-			"	_acts = " << "uint(" << ARR_REF( toStateActions ) << "[" << vCS() << "]" << ")\n" // actions array index
-			"	_nacts = " << "uint(" << ARR_REF( actions ) << "[_acts]); _acts++\n"
-			"	for ; _nacts > 0; _nacts-- {\n"
-			"		_acts++\n"
-			"		switch " << ARR_REF( actions ) << "[_acts - 1]" << " {\n";
-			TO_STATE_ACTION_SWITCH() <<
-			"		}\n"
-			"	}\n"
-			"\n";
-	}
+        out <<
+            "    _acts = " << ARR_REF( toStateActions ) << "[" << vCS() << "]\n" // actions array index
+            "    _nacts = " << ARR_REF( actions ) << "[_acts]\n"
+            "    _acts += 1\n"
+            "    while _nacts > 0\n"
+            "        _acts += 1\n"
+            "        _nacts -= 1\n";
+            TO_STATE_ACTION_SWITCH() <<
+            "    end\n"
+            "\n";
+    }
 
-	if ( redFsm->errState != 0 ) {
+    if ( redFsm->errState != 0 ) {
 		outLabelUsed = true;
-		out <<
-			"	if " << vCS() << " == " << redFsm->errState->id << " {\n"
-			"		goto _out\n"
-			"	}\n";
-	}
+        out <<
+            "    if " << vCS() << " == " << redFsm->errState->id << "\n"
+            "        _goto_level = _out\n"
+            "        continue\n"
+            "    end\n";
+    }
 
-	if ( !noEnd ) {
-		out <<
-			"	if " << P() << "++; " << P() << " != " << PE() << " {\n"
-			"		goto _resume\n"
-			"	}\n";
-	}
-	else {
-		out <<
-			"	" << P() << " += 1\n"
-			"	goto _resume\n";
-	}
+    out << "    " << P() << " += 1\n";
 
-	if ( testEofUsed )
-		out << "	_test_eof: {}\n";
+    if ( !noEnd ) {
+        out <<
+            "    if " << P() << " != " << PE() << "\n"
+            "        _goto_level = _resume\n"
+            "        continue\n"
+            "    end\n";
+    }
+    else {
+        out <<
+            "    _goto_level = _resume\n"
+            "    continue\n";
+    }
+
+    // test_eof label
+    out <<
+        "    end\n"
+        "    if _goto_level <= _test_eof\n";
 
 	if ( redFsm->anyEofTrans() || redFsm->anyEofActions() ) {
-		out <<
-			"	if " << P() << " == " << vEOF() << " {\n";
+        out <<
+            "    if " << P() << " == " << vEOF() << "\n";
 
 		if ( redFsm->anyEofTrans() ) {
 			TableArray &eofTrans = useIndicies ? eofTransIndexed : eofTransDirect;
 			out <<
-				"	if " << ARR_REF( eofTrans ) << "[" << vCS() << "] > 0 {\n"
-				"		_trans = " << "uint(" << ARR_REF( eofTrans ) << "[" << vCS() << "] - 1)\n"
-				"		_cond = " << "uint(" << ARR_REF( transOffsets ) << "[_trans]" << ")\n"
-				"		goto _eof_trans\n"
-				"	}\n";
-		}
+                "    if " << ARR_REF( eofTrans ) << "[" << vCS() << "] > 0\n"
+                "        _trans = " << ARR_REF( eofTrans ) << "[" << vCS() << "] - 1\n"
+                "        _cond = " << ARR_REF( transOffsets ) << "[_trans]\n"
+                "        _goto_level = _eof_trans\n"
+                "        continue\n"
+                "    end\n";
+        }
 
-		if ( redFsm->anyEofActions() ) {
-			out <<
-				"	var __acts = " << "uint(" << ARR_REF( eofActions ) << "[" << vCS() << "]" << ")\n" // actions array index
-				"	var __nacts = " << "uint(" << ARR_REF( actions ) << "[__acts]); __acts++\n"
-				"	for ; __nacts > 0; __nacts-- {\n"
-				"		__acts++\n"
-				"		switch " << ARR_REF( actions ) << "[__acts - 1]" << " {\n";
-				EOF_ACTION_SWITCH() <<
-				"		}\n"
-				"	}\n";
-		}
+        if ( redFsm->anyEofActions() ) {
+            out <<
+                "    __acts = " << ARR_REF( eofActions ) << "[" << vCS() << "]\n" // actions array index
+                "    __nacts = " << ARR_REF( actions ) << "[__acts]\n"
+                "    __acts += 1\n"
+                "    while __nacts > 0\n"
+                "        __acts += 1\n"
+                "        __nacts -= 1\n";
+                EOF_ACTION_SWITCH() <<
+                "    end\n"
+                "    if _trigger_goto\n"
+                "        continue\n"
+                "    end\n";
+        }
 
-		out <<
-			"	}\n"
-			"\n";
-	}
+        out <<
+            "end\n";
+    }
 
-	if ( outLabelUsed )
-		out << "	_out: {}\n";
+	if ( outLabelUsed ) {
+        out <<
+            "    end\n"
+            "    if _goto_level <= _out\n"
+            "        break\n"
+            "    end\n";
+    }
 
-	out << "	}\n";
+    // end loop for next
+    out <<
+        "    end\n";
+
+	// wrapping the execute block.
+	out <<
+		"	end\n";
 }
 
 }

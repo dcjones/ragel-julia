@@ -104,6 +104,7 @@ struct TableArray
     bool isIndex;
     CodeGen &codeGen;
     std::ostream &out;
+    unsigned long valuesGenerated;
 };
 
 

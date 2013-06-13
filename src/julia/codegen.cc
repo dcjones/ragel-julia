@@ -88,7 +88,8 @@ TableArray::TableArray( const char *name, CodeGen &codeGen, bool isIndex )
     max(LLONG_MIN),
     isIndex(isIndex),
     codeGen(codeGen),
-    out(codeGen.out)
+    out(codeGen.out),
+    valuesGenerated(0)
 {
     codeGen.arrayVector.append( this );
 }
@@ -151,6 +152,7 @@ void TableArray::startGenerate()
 
 void TableArray::valueGenerate( long long v )
 {
+    if ( ++valuesGenerated % 8 == 0 ) out << "\n";
     out << (isIndex ? v + 1 : v);
     out << ", ";
 }
@@ -416,7 +418,7 @@ string CodeGen::TABS( int level )
 {
     string result;
     while ( level-- > 0 )
-        result += "\t";
+        result += "    ";
     return result;
 }
 

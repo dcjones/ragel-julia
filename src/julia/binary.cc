@@ -596,126 +596,139 @@ void Binary::taActions()
 void Binary::LOCATE_TRANS()
 {
     out <<
-        "	_keys = " << "uint(" << ARR_REF( keyOffsets ) << "[" << vCS() << "]" << ")\n" // keys array index
-        "	_trans = " << "uint(" << ARR_REF( indexOffsets ) << "[" << vCS() << "])\n"
+        "    _keys = " << ARR_REF( keyOffsets ) << "[" << vCS() << "]" << "\n" // keys array index
+        "    _trans = " << ARR_REF( indexOffsets ) << "[" << vCS() << "]\n"
+        "    _klen = " << ARR_REF( singleLens ) << "[" << vCS() << "]\n"
+        "    _break_match = false\n"
+        "    while true\n"
+        "        if _klen > 0\n"
+        "            _lower = _keys\n" // ALPH_TYPE array index
+        "            _mid = 0\n" // ALPH_TYPE array index
+        "            _upper = _keys + _klen - 1\n" // ALPH_TYPE array index
+        "            while true\n"
+        "                if _upper < _lower\n"
+        "                    break\n"
+        "                end\n"
         "\n"
-        "	_klen = " << "int(" << ARR_REF( singleLens ) << "[" << vCS() << "])\n"
-        "	if _klen > 0 {\n"
-        "		var _lower = int(_keys)\n" // ALPH_TYPE array index
-        "		var _mid int\n" // ALPH_TYPE array index
-        "		var _upper = int(_keys) + _klen - 1\n" // ALPH_TYPE array index
-        "		for {\n"
-        "			if _upper < _lower {\n"
-        "				break\n"
-        "			}\n"
+        "                _mid = _lower + ((_upper - _lower) >> 1)\n"
+        "                if " << GET_KEY() << " < " << ARR_REF( keys ) << "[_mid]\n"
+        "                    _upper = _mid - 1\n"
+        "                elseif " << GET_KEY() << " > " << ARR_REF( keys ) << "[_mid]\n"
+        "                    _lower = _mid + 1\n"
+        "                else\n"
+        "                    _trans = uint(int(_trans) + (_mid - int(_keys)))\n"
+        "                    _break_match = true\n"
+        "                    break\n"
+        "                end\n"
+        "            end\n"
+        "            if _break_match\n"
+        "                break\n"
+        "            end\n"
+        "            _key += _klen\n"
+        "            _trans += _klen\n"
+        "        end\n"
         "\n"
-        "			_mid = _lower + ((_upper - _lower) >> 1)\n"
-        "			switch {\n"
-        "			case " << GET_KEY() << " < " << ARR_REF( keys ) << "[_mid]:\n"
-        "				_upper = _mid - 1\n"
-        "			case " << GET_KEY() << " > " << ARR_REF( keys ) << "[_mid]:\n"
-        "				_lower = _mid + 1\n"
-        "			default:\n"
-        "				_trans = " << "uint(int(_trans) + (_mid - int(_keys)))\n"
-        "				goto _match\n"
-        "			}\n"
-        "		}\n"
-        "		_keys = uint(int(_keys) + _klen)\n"
-        "		_trans = uint(int(_trans) + _klen)\n"
-        "	}\n"
+        "        _klen = " << ARR_REF( rangeLens ) << "[" << vCS() << "]\n"
+        "        if _klen > 0\n"
+        "            _lower = _keys\n" // ALPH_TYPE array index
+        "            _mid = 0\n" // ALPH_TYPE array index
+        "            _upper = int(_keys) + (_klen << 1) - 2\n" // ALPH_TYPE array index
+        "            while true\n"
+        "                if _upper < _lower\n"
+        "                    break\n"
+        "                end\n"
         "\n"
-        "	_klen = " << "int(" << ARR_REF( rangeLens ) << "[" << vCS() << "])\n"
-        "	if _klen > 0 {\n"
-        "		var _lower = int(_keys)\n" // ALPH_TYPE array index
-        "		var _mid int\n" // ALPH_TYPE array index
-        "		var _upper = int(_keys) + (_klen << 1) - 2\n" // ALPH_TYPE array index
-        "		for {\n"
-        "			if _upper < _lower {\n"
-        "				break\n"
-        "			}\n"
-        "\n"
-        "			_mid = _lower + (((_upper - _lower) >> 1) & ^1)\n"
-        "			switch {\n"
-        "			case " << GET_KEY() << " < " << ARR_REF( keys ) << "[_mid]:\n"
-        "				_upper = _mid - 2\n"
-        "			case " << GET_KEY() << " > " << ARR_REF( keys ) << "[_mid + 1]:\n"
-        "				_lower = _mid + 2\n"
-        "			default:\n"
-        "				_trans = " << "uint(int(_trans) + ((_mid - int(_keys)) >> 1))\n"
-        "				goto _match\n"
-        "			}\n"
-        "		}\n"
-        "		_trans = uint(int(_trans) + _klen)\n"
-        "	}\n"
+        "                _mid = _lower + (((_upper - _lower) >> 1) & ~uint(1))\n"
+        "                if " << GET_KEY() << " < " << ARR_REF( keys ) << "[_mid]\n"
+        "                    _upper = _mid - 2\n"
+        "                elseif " << GET_KEY() << " > " << ARR_REF( keys ) << "[_mid + 1]\n"
+        "                    _lower = _mid + 2\n"
+        "                else\n"
+        "                    _trans = " << "uint(int(_trans) + ((_mid - int(_keys)) >> 1))\n"
+        "                    _break_match = true\n"
+        "                    break\n"
+        "                end\n"
+        "            end\n"
+        "            if _break_match\n"
+        "                break\n"
+        "            end\n"
+        "            _trans = uint(int(_trans) + _klen)\n"
+        "        end\n"
+        "        break\n"
+        "    end # while true\n"
         "\n";
 }
 
 void Binary::LOCATE_COND()
 {
     out <<
-        "	_ckeys = " << "uint(" << ARR_REF( transOffsets ) << "[_trans]" << ")\n" // condKeys array index
-        "	_klen = " << "int(" << ARR_REF( transLengths ) << "[_trans]" << ")\n"
-        "	_cond = " << "uint(" << ARR_REF( transOffsets ) << "[_trans]" << ")\n"
+        "    _ckeys = " << ARR_REF( transOffsets ) << "[_trans]" << "\n" // condKeys array index
+        "    _klen = " << ARR_REF( transLengths ) << "[_trans]" << "\n"
+        "    _cond = " << ARR_REF( transOffsets ) << "[_trans]" << "\n"
+        "    _break_match = false\n"
         "\n";
 
-    out <<
-        "	_cpc = 0\n"
-        "	switch " << ARR_REF( transCondSpaces ) << "[_trans] {\n"
-        "\n";
-
-    for ( CondSpaceList::Iter csi = condSpaceList; csi.lte(); csi++ ) {
+    out << "    _cpc = 0\n";
+    int i = 0;
+    for ( CondSpaceList::Iter csi = condSpaceList; csi.lte(); csi++, i++ ) {
         GenCondSpace *condSpace = csi;
-        out << "	case " << condSpace->condSpaceId << ":\n";
+        out << (i == 0 ? "    if " : "    elseif ");
+        out << ARR_REF( transCondSpaces ) << "[_trans] == " << condSpace->condSpaceId << "\n";
         for ( GenCondSet::Iter csi = condSpace->condSet; csi.lte(); csi++ ) {
             out << TABS(2) << "if ";
             CONDITION( out, *csi );
             Size condValOffset = (1 << csi.pos());
-            out << " {\n";
             out << TABS(3) << "_cpc += " << condValOffset << "\n";
-            out << TABS(2) << "}\n";
+            out << TABS(2) << "end\n";
         }
     }
+    if (i > 0) out << "    end\n";
 
     out <<
-        "	}\n";
-
-    out <<
-        "	{\n"
-        "		var _lower = int(_ckeys);\n" // condKeys array index
-        "		var _mid int\n" // condKeys array index
-        "		var _upper = int(_ckeys) + _klen - 1\n" // condKeys array index
-        "		for {\n"
-        "			if _upper < _lower {\n"
-        "				break\n"
-        "			}\n"
+        "    begin\n"
+        "        _lower = int(_ckeys);\n" // condKeys array index
+        "        _mid = 0\n" // condKeys array index
+        "        _upper = _ckeys + _klen - 1\n" // condKeys array index
+        "        while true\n"
+        "            if _upper < _lower\n"
+        "                break\n"
+        "            end\n"
         "\n"
-        "			_mid = _lower + ((_upper - _lower) >> 1)\n"
-        "			switch {\n"
-        "			case " << "_cpc" << " < " << "int(" << ARR_REF( condKeys ) << "[_mid]" << "):\n"
-        "				_upper = _mid - 1\n"
-        "			case " << "_cpc" << " > " << "int(" << ARR_REF( condKeys ) << "[_mid]" << "):\n"
-        "				_lower = _mid + 1\n"
-        "			default:\n"
-        "				_cond = " << "_cond + uint(_mid - int(_ckeys))\n"
-        "				goto _match_cond\n"
-        "			}\n"
-        "		}\n"
-        "		" << vCS() << " = " << ERROR_STATE() << "\n"
-        "		goto _again\n"
-        "	}\n"
-    ;
+        "            _mid = _lower + ((_upper - _lower) >> 1)\n"
+        "            if " << "_cpc" << " < " << ARR_REF( condKeys ) << "[_mid]\n"
+        "                _upper = _mid - 1\n"
+        "            elseif " << "_cpc" << " > " << ARR_REF( condKeys ) << "[_mid]\n"
+        "                _lower = _mid + 1\n"
+        "            else\n"
+        "                _cond = " << "_cond + (_mid - _ckeys)\n"
+        "                _break_match = true\n"
+        "                break\n"
+        "            end\n"
+        "        end\n"
+        "        if !_break_match\n"
+        "            " << vCS() << " = " << ERROR_STATE() << "\n"
+        "            _goto_level = _again\n"
+        "            _trigger_goto = true\n"
+        "        end\n"
+        "    end\n";
 }
 
 void Binary::GOTO( ostream &ret, int gotoDest, bool inFinish )
 {
-    ret << "{ " << vCS() << " = " << gotoDest << "; " << "goto _again }\n";
+    ret << "    " << vCS() << " = " << gotoDest << "\n";
+    ret << "    _trigger_goto = true\n";
+    ret << "    _goto_level = _again\n";
+    ret << "    break\n";
 }
 
+// TODO: everything below this
 void Binary::GOTO_EXPR( ostream &ret, GenInlineItem *ilItem, bool inFinish )
 {
     ret << "{ " << vCS() << " = (";
     INLINE_LIST( ret, ilItem->children, 0, inFinish, false );
-    ret << "); " << "goto _again }\n";
+    ret << ")\n";
+    ret << "_trigger_goto = true\n";
+    ret << "_goto_lever = _again\n";
 }
 
 void Binary::CURS( ostream &ret, bool inFinish )
@@ -743,50 +756,77 @@ void Binary::NEXT_EXPR( ostream &ret, GenInlineItem *ilItem, bool inFinish )
 void Binary::CALL( ostream &ret, int callDest, int targState, bool inFinish )
 {
     if ( prePushExpr != 0 ) {
-        ret << "{\n";
+        ret << "begin\n";
         INLINE_LIST( ret, prePushExpr, 0, false, false );
     }
 
-    ret << "{ " << STACK() << "[" << TOP() << "] = " << vCS() << "; " << TOP() << "++; " << vCS() << " = " <<
-            callDest << "; " << "goto _again }\n";
+    ret <<
+        "    begin\n"
+        "        " << STACK() << "[" << TOP() << "] = " << vCS() << "\n"
+        "        " << TOP() << "+= 1\n"
+        "        " << vCS() << " = " << callDest << "\n"
+        "        _trigger_goto = true\n"
+        "        _goto_level = _again\n"
+        "        break\n"
+        "    end\n";
 
     if ( prePushExpr != 0 )
-        ret << "}\n";
+        ret << "end\n";
 }
 
 void Binary::CALL_EXPR( ostream &ret, GenInlineItem *ilItem, int targState, bool inFinish )
 {
     if ( prePushExpr != 0 ) {
-        ret << "{\n";
+        ret << "begin\n";
         INLINE_LIST( ret, prePushExpr, 0, false, false );
     }
 
-    ret << "{ " << STACK() << "[" << TOP() << "] = " << vCS() << "; " << TOP() << "++; " << vCS() << " = (";
+    ret <<
+        "    begin\n"
+        "        " << STACK() << "[" << TOP() << "] = " << vCS() << "\n"
+        "        " << TOP() << " += 1\n"
+        "        " << vCS() << " = (";
     INLINE_LIST( ret, ilItem->children, targState, inFinish, false );
-    ret << "); " << "goto _again }\n";
+    ret << ")\n";
+    ret <<
+        "        _trigger_goto = true\n"
+        "        _goto_level = _again\n"
+        "        break\n";
 
     if ( prePushExpr != 0 )
-        ret << "}\n";
+        ret << "end\n";
 }
 
 void Binary::RET( ostream &ret, bool inFinish )
 {
-    ret << "{ " << TOP() << "--; " << vCS() << " = " << STACK() << "[" <<
-            TOP() << "]\n";
+    ret <<
+        "    begin\n"
+        "        " << TOP() << " -= 1\n"
+        "        " << vCS() << " = " << STACK() << "[" << TOP() << "]\n";
 
     if ( postPopExpr != 0 ) {
-        ret << "{ ";
+        ret << "begin\n";
         INLINE_LIST( ret, postPopExpr, 0, false, false );
-        ret << " }\n";
+        ret << "end\n";
     }
 
-    ret << "goto _again }\n";
+    ret <<
+        "        _trigger_goto = true\n"
+        "        _goto_level = _again\n"
+        "        break\n"
+        "    end\n";
 }
 
 void Binary::BREAK( ostream &ret, int targState, bool csForced )
 {
     outLabelUsed = true;
-    ret << "{ " << P() << "++; " << "goto _out }";
+    ret <<
+        "begin\n"
+        "    " << P() << " += 1\n"
+        "    _trigger_goto = true\n"
+        "    _goto_level = _out\n"
+        "    break\n"
+        "end\n";
 }
 
 }
