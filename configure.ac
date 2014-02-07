@@ -62,7 +62,7 @@ dnl
 dnl COLM
 dnl
 
-EXPECTED_COLM_VERSION=0.11
+EXPECTED_COLM_VERSION=0.12
 
 AC_ARG_WITH(colm,
 	[AC_HELP_STRING([--with-colm], [location of colm install])],
@@ -74,7 +74,7 @@ if test -z "$COLM"; then
 fi
 
 dnl extract the first two precision points from the version
-COLM_VERSION=[`$COLM -v | sed -n '/version/s/^.*version \([0-9]\+\.[0-9]\+\).*$/\1/p'`]
+COLM_VERSION=[`$COLM -v | grep version | grep -o '[[:digit:]]\+\.[[:digit:]]\+'`]
 if test "$COLM_VERSION" != $EXPECTED_COLM_VERSION; then
 	AC_ERROR([expected colm version $EXPECTED_COLM_VERSION, but $COLM_VERSION is installed])
 fi

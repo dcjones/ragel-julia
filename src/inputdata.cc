@@ -116,6 +116,17 @@ void InputData::crackDefaultFileName( const char *inputFile )
 		outputFileName = fileNameFromStem( inputFile, ".crk" );
 }
 
+/* Invoked by the parser when the root element is opened. */
+void InputData::juliaDefaultFileName( const char *inputFile )
+{
+	/* If the output format is code and no output file name is given, then
+	 * make a default. */
+	if ( outputFileName == 0 )
+		outputFileName = fileNameFromStem( inputFile, ".jl" );
+}
+
+
+
 
 void InputData::makeDefaultFileName()
 {
@@ -143,6 +154,9 @@ void InputData::makeDefaultFileName()
 		case HostLang::Crack:
 			crackDefaultFileName( inputFileName );
 			break;
+        case HostLang::Julia:
+            juliaDefaultFileName( inputFileName );
+            break;
 
 	}
 }
@@ -393,8 +407,9 @@ void InputData::process()
 		processXML();
 	else if ( generateDot )
 		processDot();
-	else 
+	else {
 		processCode( generateDot, printStatistics );
+    }
 
 	assert( gblErrorCount == 0 );
 }

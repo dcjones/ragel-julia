@@ -108,6 +108,19 @@ HostType hostTypesOCaml[] =
 	{ "int",    0,  "int",      true,   true,  false, S31BIT_MIN, S31BIT_MAX, 4 },
 };
 
+HostType hostTypesJulia[] =
+{
+	{ "Int8",    0,  "Int8",    true,   true,  false,  S8BIT_MIN,  S8BIT_MAX,   1 },
+	{ "Uint8",   0,  "Uint8",   false,  true,  false,  U8BIT_MIN,  U8BIT_MAX,   1 },
+	{ "Int16",   0,  "Int16",   true,   true,  false,  S16BIT_MIN, S16BIT_MAX,  2 },
+	{ "Uint16",  0,  "Uint16",  false,  true,  false,  U16BIT_MIN, U16BIT_MAX,  2 },
+	{ "Int32",   0,  "Int32",   true,   true,  false,  S32BIT_MIN, S32BIT_MAX,  4 },
+	{ "Uint32",  0,  "Uint32",  false,  true,  false,  U32BIT_MIN, U32BIT_MAX,  4 },
+	{ "Int64",   0,  "Int64",   true,   true,  false,  S64BIT_MIN, S64BIT_MAX,  8 },
+	{ "Uint64",  0,  "Uint64",  false,  true,  false,  U64BIT_MIN, U64BIT_MAX,  8 },
+    { "Char",    0,  "Uint32",  false,  true,  true,   U32BIT_MIN, U32BIT_MAX,  4 }
+};
+
 const HostLang hostLangC =      { HostLang::C,      hostTypesC,      8,  hostTypesC+0,       true,  "c"  };
 const HostLang hostLangD =      { HostLang::D,      hostTypesD,      9,  hostTypesD+2,       true,  "d"  };
 const HostLang hostLangD2 =     { HostLang::D2,     hostTypesD,      9,  hostTypesD+2,       true,  "no-lang"  };
@@ -117,6 +130,7 @@ const HostLang hostLangRuby =   { HostLang::Ruby,   hostTypesRuby,   2,  hostTyp
 const HostLang hostLangCSharp = { HostLang::CSharp, hostTypesCSharp, 9,  hostTypesCSharp+4,  true,  "no-lang"  };
 const HostLang hostLangOCaml =  { HostLang::OCaml,  hostTypesOCaml,  1,  hostTypesOCaml+0,   false, "no-lang"  };
 const HostLang hostLangCrack =  { HostLang::Crack,  hostTypesCrack,  5,  hostTypesCrack+0,   true,  "no-lang"  };
+const HostLang hostLangJulia =  { HostLang::Julia,  hostTypesJulia,  9,  hostTypesJulia+0,   false, "julia" };
 
 HostType *findAlphType( const HostLang *hostLang, const char *s1 )
 {

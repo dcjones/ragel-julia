@@ -283,6 +283,7 @@ def start
 include 'rlhc-c.lm'
 include 'rlhc-d.lm'
 include 'rlhc-go.lm'
+include 'rlhc-julia.lm'
 
 InputFile: str = argv.pop()
 OutputFile: str = argv.pop()
@@ -304,6 +305,8 @@ elsif ( Lang == 'd' )
 	d_stmt_list( Start._repeat_stmt )
 elsif ( Lang == 'go' )
 	go_stmt_list( Start._repeat_stmt )
+elsif ( Lang == 'julia' )
+    julia_stmt_list( Start._repeat_stmt )
 else {
 	print( 'rlhc: unrecognized language: ' Lang '\n' )
 }
