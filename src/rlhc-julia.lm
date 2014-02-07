@@ -2,12 +2,21 @@
 void julia_tok_list( TL: host::tok* )
 {
 	for Tok: host::tok in repeat(TL) {
-		if match Tok [host::`${ StmtList: stmt* host::`}$]
+		if match Tok [host::`${ StmtList: stmt* host::`}$] {
 			julia_stmt_list( StmtList )
-		elsif match Tok [host::`={ Expr: expr host::`}=]
+        }
+		elsif match Tok [host::`={ Expr: expr host::`}=] {
 			julia_expr( Expr )
-		else
+        }
+		elsif match Tok ["{"] {
+			send Output "begin
+        }
+        else if match Tok ["}"] {
+            send Output "end
+        }
+		else {
 			send Output [Tok]
+        }
 	}
 }
 
@@ -303,12 +312,12 @@ void julia_stmt ( Stmt: stmt )
     }
 	elsif match Stmt [Array: array] {
         send Output
-            "const [Array.ident] = [julia_type(Array.type)] "
+            "[Array.ident] = [julia_type(Array.type)] "
                 "\[ [Array.num_list] \]
     }
 	elsif match Stmt [Value: value] {
 		send Output
-			"const [Value.value_pass.ident] :: "
+			"[Value.value_pass.ident] :: "
                 "[julia_type(Value.value_pass.type)] = [Value.value_pass.number]
 	}
 	elsif match Stmt [
@@ -343,11 +352,24 @@ void julia_stmt ( Stmt: stmt )
 			"    [julia_stmt(WhileStmt)]
             "end
     }
-	elsif match Stmt ['switch' '(' SwitchExpr: expr ')' '{' StmtList: stmt* '}'] {
-        # TODO
-        # Ok, here we are. This is pretty hopeless. We really need a goto
-        # statement here. Not just that but the intermediate representation is
-        # full of gotos that just don't get transformed here at all.
+	elsif match Stmt
+        ['switch' '(' SwitchExpr: expr ')''{' StmtList: stmt* '}'] {
+
+        send Output
+            "@switch [julia_expr(SwitchExpr)] begin
+
+        for CaseStmt: stmt in repeat (StmtList) {
+            if match CaseStmt [`case CaseExpr: expr `:] {
+                send Output
+                    "@case [julia_expr(CaseExpr)]
+            }
+            else {
+                julia_stmt(CaseStmt)
+            }
+        }
+
+        send Output
+            "end
     }
 	elsif match Stmt [ExprExpr: expr Semi: `;] {
 		send Output
@@ -376,7 +398,7 @@ void julia_stmt ( Stmt: stmt )
 	}
 	elsif match Stmt ['fallthrough' ';']
 	{
-        # TODO: probably do nothing here, but I really don't know.
+        # no need to do anything
 	}
 	elsif match Stmt [index_stmt]
 	{
