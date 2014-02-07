@@ -43,7 +43,7 @@ function parse(data::String)
 end
 
 parse("1234.56")
-```julia
+```
 
 Saving the above as `number.rl` and running  `ragel -U number.rl" will generate
 a file `number.jl`, which is very efficient, pure Julia number parser.
